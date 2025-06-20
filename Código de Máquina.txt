@@ -1,0 +1,75 @@
+20/05 - Código de Máquina:
+
+- Quando escrevemos um código de máquina (assembly), ela há uma lógica de escrita e interpretada pela máquina. Por exemplo:
+	- Em C:
+		int foo (int x) {
+		  return x+1;
+		}
+	- Em assembly:
+		.text
+		.globl foo
+
+		foo:
+
+		movl %edi, %eax
+		addl $1, %eax
+		ret
+
+	- Para visualizar o código de máquina do programa gerado pelo gcc -c -o foo.o foo.s para traduzir o programa para linguagem de máquina (o gcc vai gerar um arquivo foo.o), usando o comando objdump -d foo.o (a opção -d do objdump faz um "disassembly" do arquivo objeto). 
+		- Será gerado: 
+			foo.o:     file format elf64-x86-64
+
+
+			Disassembly of section .text:
+
+			0000000000000000 <foo>:
+			   0:   89 f8                   mov    %edi,%eax
+			   2:   83 c0 01                add    $0x1,%eax
+			   5:   c3                      ret
+		- Observe que há valores 89, 83, c3 na parte de código de máquina. Esses valores correspondem à um código que corresponde à operação da máquina, logo na sequência corresponderia o mov, add e ret. Dessa maneira, o código .o, irá gerar o código.
+		- Podemos copiar o código de máquina e executar em uma função C, por exemplo o código abaixo utiliza a função esperada acima:
+			#include <stdio.h>
+			#include <string.h>
+			#include <ctype.h>
+
+			typedef int (*funcp) (int x);
+
+			int main(void) {
+			    unsigned char codigo[] = {0x89, 0xf8, 0x83, 0xc0, 0x01, 0xc3};
+
+			    funcp f = (funcp)codigo;
+
+			    int i = (*f)(10);
+
+			    printf("%d\n", i); 
+			    return 0;
+			}
+			- Podemos executar por meio de gcc -Wall -Wa,--execstack -o seuprograma seuprograma.c, sendo que para permitir a execução do código de máquina (sem a opção -Wa,--execstack, o sistema operacional abortará o seu programa, por tentar executar um código armazenado na área de dados). Execute o programa resultante e verifique a sua saída.
+			
+	- Um conceito importante é de endereço de funções, quando realizamos um call, ele buscará pelo endereço da função dentro código de máquina e adicionará para o código e8 xx xx xx xx o endereço da subtração do endereço da função pelo endereço do call (chamamos de deslocamento relativo), podendo ser que a função esteja depois, retornando um valor de endereço positivo, ou negativo - quando a função está antes do call - e retornando endereço com a representação em formato negativo. Por exemplo:
+	- Em C:
+		int foo (int x) {
+		  return add(x);
+		}
+		
+	- Em Assembly:
+		.text
+		.globl foo
+
+		foo:
+
+		pushq %rbp
+		movq %rsp, %rbp
+		call add
+		leave
+		ret
+		
+	- Obtemos como resultado de dumo
+		0000000000000000 <foo>:
+		   0:   55                      push   %rbp
+		   1:   48 89 e5                mov    %rsp,%rbp
+		   4:   e8 00 00 00 00          call   9 <foo+0x9>
+		   9:   c9                      leave
+		   a:   c3                      ret
+	- Observe que podemos adicionar um endereço no espaço de 00 00 00 00, já que não foi encontrado a função add, portanto não foi realizado nenhum deslocamento.
+		- Existe outro código para chamar o call para mais bytes de deslocamento, mas não será necessário.

@@ -1,0 +1,783 @@
+13/03 - Representação de Dados:
+	- O endereço na memória é armazenada em array de bytes, sendo identificada por "índices" (endereços) de tamanho por 8 bytes.
+	- Computadores armazenam "sinais" de dois valores: 0 e 1 bits.
+	- Lembrar de conversão de dados:
+		- Ex: 01111101 na base 2 é 125 na base 10 : 0*2⁶ + 1*2⁵ + 1*2⁴ + 1*2³ + 1*2² + 0*2¹ + 1*2⁰ = 125
+		      2ABC na base 16 é 10940 na base 10 : 2*16³ + 10*16² + 11*16¹ + 12*16⁰
+		      ABC na base 16 é 1010 1011 1100 : 1010 (A) 1011 (B) 1100 (C)
+		      11 na base 10 é 1011 na base 2: 11 / 2 = 5 (1), 5 / 2 = 2 (1), 2 / 2 = 1 (0), 1 / 2 = (1)
+	- Notações decimal e binária são inconvenientes para descrever padrões de bits e representar endereços
+	- Em C (e assembly) constantes que começam com 0x estão em notação hexadecimal: 0x10, 0xFF, 0x55aa
+	- Cada computador tem seu tamanho de palavra:
+		- número de bits transferidos em um chunk entre memória e CPU	
+		- número de bits de endereços (tamanho de um ponteiro)
+		Trabalharemos com uma plataforma de 64 bits (8 bytes).
+		Alguns tipos de dados podem ocupar apenas parte de uma palavra, mas sempre um número inteiro de bytes.
+	- Valores inteiros em diferentes tamanhos (número de bytes):
+		 com 1 byte (8 bits) podemos representar inteiros de 0 a 255 (2⁸-1)
+		 com 2 bytes (16 bits), de 0 a 65535 (2¹⁶-1)
+		 com 4 bytes (32 bits), de 0 a 4294967295 (2³²-1)
+		 com 8 bytes (64 bits), de 0 a 2⁶⁴-1
+		A mesma limitação vale para endereços.
+	- Dados representados na memória como sequência de bytes inteiro (32 bits): 4 bytes
+		- 01 02 03 04 -> 0x01020304
+		   ^        ^
+	mais significativo  menos significativo
+	- Duas convenções para ordem de armazenamento dos bytes na memória:
+		 Big Endian (PowerPC): do byte mais significativo para o menos significativo. Ex: 01 02 03 04
+		 Little Endian (Intel): do byte menos significativo para o mais significativo. Ex: 04 03 02 01
+	- O dump de abaixo, realiza a pesquisa das posições da memória, e exibe o endereço e o conteúdo em hexadecimal do parâmetro p. Além de seguir os endereços de acordo com o tamanho de p. E retornará em little-endian i valor da conversão do valor convertido de decimal para hexadecimal.
+		#include <stdio.h>
+
+		void dump (void *p, int n) {
+  		   unsigned char *p1 = p;
+  		   while (n--) {
+    		      printf("%p - %02x\n", p1, *p1);
+    		      p1++;
+  		   }
+		}
+	- Valores representados por char são retornados com valores em Hexadecimal de acordo com a tabela ASCII quando acessado o valor no endereço da memória.
+	
+13/03 - Operações bit a bit
+	- Utilizando como base o 1 (True) e 0 (False), podemos trabalhar com casos de bit a bit para verificar se o valor com o seu tipo de operação lógica terá resultado verdadeiro ou falso, ou também para transformações de valores:
+	- Tipos de operações lógicas em C:
+		- AND (&): Apenas será verdadeiro caso os dois casos sejam verdadeiro.
+		- OR  (|): Caso haja um verdadeiro, será verdadeiro.
+		- NOT (~): Inverte o valor, caso seja verdadeiro, será falso, e vice versa.
+		- XOR (^): Caso haja apenas um verdadeiro e um falso, será verdadeiro.
+			- Exemplo:
+				unsigned short a,b,c;
+				a = 0xFF00; /* a = 1111 1111 0000 0000 */
+				b = 0xA5A5; /* b = 1010 0101 1010 0101 */
+				
+				c = a | b; /* c = 0xFFA5 */
+				c = a & b; /* c = 0xA500 */
+				c = ~a; /* c = 0x00FF */
+				c = a^b; /* c = 0x5AA5 */
+				
+		- Obs: O operador OR (|) força obter valores com Verdaeiros, e o operador (&) força obter apenas caso Falso.
+	- Deslocamento de bits: realizar a movimentação de um bit para a esquerda (<<) ou direita (>>).
+		- Deslocamento lógico (usando unsigned): adiciona um zero para cada deslocamento.
+		- Deslocamento aritmético (usando signed): quando deslocamos, podemos multiplicar ou dividir pelo número de casas (n) por 2^n.
+		
+20/03 - Representação de Dados: inteiros com sinais:
+	- Em C, a representação inteiro negativo seria de unsigned char.
+	- Para representar um número inteiro negativo, devemos aplicar a regra do complemento a 2:
+		- Basta escrever normalmente aversão positiva em binário;
+		- Escrever o inverso da representação (substituir 0 por 1, e vice-versa);
+		- Somar mais um bit.
+			Ex:
+				-1 ?
+				+1 -> 0000 0001
+				~  -> 1111 1110
+				+1 -> 1111 1111 = -1
+				
+				-17 ?
+				+17 -> 0001 0001
+				~   -> 1110 1110
+				+1  -> 1110 1111 = -17
+				
+			
+	- Também podemos realizar operações com binário, e obteremos os mesmos resultados.
+	- O primeiro bit corresponde o sinal do valor, no caso, ser for 1 será negativo, e 0 o positivo.
+		Ex: 
+		-17 -> 1110 1111
+		+2  -> 0000 0010
+		----------------
+		       1111 0001 = -15
+		       - Para calcular esse resultado, basta fazermos o complemento de 2 utilizamos a mesma técnica.
+		       Logo, 1111 0001 -> 0000 1110 ---> 0000 1110 + 1 = 0000 1111 = 15. E assim, adicionamos o sinal.
+	- Caso tentamos trabalhar com a soma de mesmo valores, porém de sinais diferentes, teremos um overflow.
+	Trabalhando com um char unsigned, teremos de -127 a 127.
+		Ex:
+			-17 -> 1110 1111
+			+17 -> 0001 0000
+			----------------
+			     1 0000 0000 -> Overflow (uso indevido da memória)
+====================================================================================================================
+27/03 - Representação de Dados: Arrays e Structs
+	- Para armazenamento dos valores, são separados na memória por bytes, onde serão armazenadas em sequência os respectivos valores das variáveis, e o ponteiro terá a função de encontrar o endereço de cada variável.
+	- Utilizando o sizeof(variável), podemos acessar o tamanho e saber como será armazenado na memória.
+	- Em C, é permitido realizar operações aritméticas básicas com ponteiros, facilitando para acessar endereços.
+	- Uma array inicializa com um ponteiro com o tamanho da array * o tipo da variável. Sendo o deslocamento entre cada item do vetor como: p(<ponteiro_aponta_para>, posição no array) + sizeof(<tipo_da_variável) * <número_qt_array>. Lembrando que o tamanho dos tipos é:
+		- String: 1 Byte;
+		- Short: 2 Bytes;
+		- Int: 4 Bytes;
+		- Long: 8 Bytes;
+		- Pointer: 8 Bytes - Valor não muda independente do tipo do ponteiro.
+	- Para calcular a posição na memória de um array multidimensional, basta:
+		- end[i][j]: end[0][0] + i * num_colunas * sizeof(int) + j * sizeof(int)
+		
+	- Em uma Struct, os campos de uma struct são alocados na memória sequencialmente, porém nem sempre contíguos.
+	- Nesse tipo de estrutura, cada tipo de dado deverá inicializa no endereço de memória cujo seja múltiplo do tamanho do tipo da variável. Chamamos isso de alinhamento de dados, em plataformas de 64 bits, dados escalares de tamanho igual a k bytes devem ser alocados em endereços múltiplos de k. Logo, longs e ponteiros em múltiplos de 8, ints em múltiplos de 4, shorts em múltiplos de 2.
+	struct s {
+	     int a;
+	     int b;
+	     int c;
+	}
+	| a | a | a | a | b | b | b | b | c | c | c | c |
+	sizeof(s) = 16
+	- Para casos em que um endereço de memória não sejam múltiplos do próximo tipo de variável. Utilizaremos o PADDING para garantir o alinhamento, com isso não adiciona valores nos endereços que não serão utilizadas até encontrar o múltiplo do próximo tipo.
+	struct s {
+	     int a;
+	     char b;
+	     int c;
+	}
+	sizeof(s) = 12
+	| a | a | a | a | b | Padding | Padding | Padding | c | c | c | c | 
+	- Utilizaremos o padding também no final da estrutura de acordo agora com o tamanho (sizeof) da estrutura, assim garantir o alinhamento em um array de estruturas. Fazemos isso para garantir que o próximo endereço possa inicializar a struct novamente.
+	struct s{
+	     int a;
+	     int b;
+	     char c;
+	}
+	sizeof(s) = 12 
+	| a | a | a | a | b | b | b | b | c | Padding | Padding | Padding | a | a | ...
+	- Union é semelhante ao uso de struct, mas permitem que um único “objeto” na memória seja referenciado por múltiplos tipos. A sintaxe da declaração é semelhante à de structs, porém a semântica é diferente. Uma union contém apenas UM de seus componentes em um dado momento, ou seja, devemos garantir que será utilizado na memória um espaço para um dos tipos escolhidos no Union, assim, basta garantir um espaço para o tipo primitivo de maior tamanho.
+	union U {
+	   char c;
+	   long l;
+	}
+	sizeof(U) = 8
+	| c | Padding | Padding | Padding | Padding | Padding | Padding | Padding | 
+	OU  | l | l | l | l | l | l | l | l |
+====================================================================================================================
+01/04 - Introdução à Assembly
+	ARQUITETURA DA CPU:
+	- Registrador é uma variável pré-fabricada que se localizam na CPU, e possuem nomes pré-definidas para cada tipo de processador (8 bits x 16 bits x 32 bits x 64 bits).
+		- Trabalhadas com chamadas e endereços de memória.
+		- Podemos realizar operações entre registradores.
+	- A memória possui o código em conjunto com os dados, além de uma pilha (stack) de execução.
+	- Flags correspondem o armazenamento do status da última operação realizada.
+	
+	- Instruções executam operações simples:
+		 operações aritméticas/lógicas
+		 transferência de dados
+		 controle do fluxo de execução (desvios, chamadas de função)
+	- Tipos de dados básicos
+		 valores inteiros (1,2,4,8 bytes)
+		 endereços de memória
+		 valores em ponto flutuante
+		
+	CÓDIGO ASSEMBLY:
+		- Possuem partes declarativas, como .global (adiciona os valores de dados globais), .text (declara o nome da função main) e labels (partes de execução do código)
+		- .globl em .text, é um marcadador de declaração da função principal. Seria como em C, se não declarar main, ele não executará.
+		- Dentro do código, trabalhamos com registrador, cujo possuem uma nomes para cada tipo de tamanho de dados e funções. Por exemplo, o %rbp e %rsp trabalham com ponteiros para a pilha.
+		- Podemos utilizar registradores de gerações diferentes caso sejam maiores em nível do processador, ou seja, podemos utilizar %eax (de 32 bits) em 64 bits, e não o contrário, chamamos isso de retrocompatibilidade.
+		
+	- OPERAÇÕES COMUNS:
+		- Movimentação de Dados(Mov)
+			- Representada por mov[b w l q] fonte, destino
+			- Sendo b w l q correspondem ao sufixo do tamanho dos operandos (binary, word, long, qword)
+			- Podemos trabalhar com movimentação com valores inteiros por meio do sufixo $.
+			- Para chamar um registrador, é utilizado %<nome-do-registrador>.
+			- Podemos realizar movimentações entre:
+				- Constante (Valores inteiros, ...) para registrador e memória.
+				- De Registradores para outros registradores e memória.
+				- De memória para registradores, mas não pode para a própria memória.
+			- Exemplo:
+				movl $1024, %eax
+				movabsq $-1, %rax
+				movl $0xFF, %ebx
+				movb $0, %al
+				movl %ebx, %ecx
+				movq %r12, %r13
+			- Também é possível trabalhar com adição de valores sobre um endereço como em C. Basta utilizar o parênteses sobre o nome do registrador, para obter o endêreço e colocar um número a frente para adicionar sobre o valor. Exemplo: movl $1, 4(%rbx) -> 0x7fff526a8970 -> 0x7fff526a8974
+			- O endereço de memória é especificado por uma constante ou rótulo (label). Exemplo:
+				.data
+					x: .int 10   ----> 0x7fff526a897c (10)
+					movl x, %ax  ----> %eax (10)
+			- Também podemos realizar a movimentação com Extensão (extensão com sinal (movs) ou com zeros (movz)). 
+		- Operações Aritméticas:
+			inc <dest>, seria como i++, %eax = %eax + 1 */ ou (%rdx) = (%rdx) + 1 */
+			dec <dest>, seria como i--, %eax = %eax – 1 */
+			neg <dest>, seria not     , %ebx = -%ebx */
+			
+			add  <s>,<d>, seria a soma de duas variáveis      , addl %ebx, %eax /* %eax = %eax + %ebx */
+				addq $4, %rbx /* %rbx = %rbx + 4 */
+				/* %eax = %eax + 4(%r12) */
+			sub <s>,<d> ,  seria a subtração de duas variáveis   , /* %eax = %eax - %ebx */
+			imul <s>,<d>, seria a multiplicação de duas variáveis, /* %eax = %eax * %ebx */
+			
+			
+			and <s>,<d>, seria como &&, %eax = %eax & 0x7FFFFFFF */ ou %eax = %eax & %ebx */
+			or <s>,<d> , seria como ||, %eax = %eax | (%rcx) */
+			xor <s>,<d>, seria como ^ ,  %ebx = %ebx ^ %eax */
+			
+			shl <i>,<d>, seria como d = d << i             , %eax = %eax << 2 */
+			shr<i>,<d> , seria como d = d >> i (lógico)    , %eax = %eax >> 16 (lógico) */
+			sar <i>,<d>, seria como d = d >> i (aritmético), %ebx = %ebx >> 3 (aritmético) */
+====================================================================================================================
+Passo-a-passo de descobrir o valor dado para um endereço:
+
+	int i = -8;
+	
+	Como seria o -8 em um endereço de 4 bytes.
+		- 1º Devemos lembrar que estamos trabalhando com arquitetura Little-Endian, ou seja, do byte menos significativo para o mais significativo.
+		- 2º Devemos organizar em Little-Endian para cada byte de acordo com a representação em Hexadecimal para o 4 bytes (do tipo inteiro) nos endereços da memória. 
+		- 3º Realizaremos o complemento à dois para o inteiro negativo, utilizando no formato binário. E com isso jogar os valores para cada endereço em valores hexadecimais.
+		Logo, seria:
+			+8 = 00 00 00 08 -> Little Endian: 08 00 00 00 = 0000 1000 0000 0000 0000 0000 0000 0000
+			-8 = 1111 0111 1111 1111 1111 1111 1111 1111 = F8 FF FF FF
+--------------------------------------------------------------------------------------------------------------------
+03/04 - Tradução de Mecanismos de Controle
+	Registrador RIP: endereço da próxima instrução a ser executada
+	fetch-decode-execute: busca automaticamente a instrução seguinte à executada anteriormente
+	
+	FLUXO DE EXECUÇÃO:
+		- A leitura se dá em blocos, sendo lido pela sequência do código.
+		- Existe forma de desvio do bloco (alterar o fluxo de controle do programa), onde a sequência de operações executada depende do resultado de testes aplicados aos dados: execução condicional
+		- Registrador RFLAGS é um conjunto de bits que descreve o resultado da última operação aritmética/lógica realizada. Exemplos são: ZF, SF, CF, OF
+		- Combinações desses bits podem ser usadas como condições para alterar o fluxo de controle
+	
+	INSTRUÇÕES DE DESVIO:
+		- Podem alterar a sequência de execução (“goto”).
+		- O destino do desvio é indicado no código assembly por um “label simbólico”
+		- Utilizamos as Labels para determinar os blocos de execução, onde podemos diferenciar dois tipos de desvios: condicional (realização de uma condicional, como maior, menor, ...) e incondicional (realização sem necessidade de condicional, como jump comum).
+		- Lembrando que em Assembly há mudanças para unsigned e signed utilizando jump.
+	MECANISMOS DE CONTROLE:
+		IF:
+			- Devemos utilizar a condição oposta do que queremos, pois será o caso de execeção para pular para o próximo fluxo do bloco, e se não cair no jump condicional, ele continuára no mesmo bloco até o final.
+			- Exemplo:
+				Em C:
+					if (a==b) c=d;
+					d=a+c;
+					
+				Em Assembly:
+					cmpl %eax, %ebx
+					jne depois_if
+					movl %edx, %ecx
+				    depois_if:
+					movl %eax, %edx
+					addl %ecx, %edx
+		IF-ELSE:
+			- Devemos utilizar dois jumps: um para else, e outro para quando terminado o if, então pular para o próximo bloco de código.
+			- Estrutura básica:
+				if (t)
+				    then-statement;
+				else
+				    else-statement;
+			
+			
+				if (!t) goto false;
+				then-statement
+				goto done;
+			     false:
+				else-statement
+			     done:
+			- Exemplo:
+				Em C:
+					d = 16;
+					a = 10;
+					if (d < a) c = a – d;	
+					else c = d – a;
+				Em Assembly:
+					movl $0x10, %edx
+					movl $0xA, %eax
+					cmpl %eax, %edx
+					jge L1
+					movl %eax, %ecx
+					subl %edx, %ecx
+					jmp L2
+				   L1: /* false */
+					movl %edx, %ecx
+					subl %eax, %ecx
+				   L2: /* done*/
+		WHILE:
+			- Estrutura básica:
+			     while (t)
+			    	Body
+			
+			     loop:
+				if (!t) goto after;
+			     Body
+				goto loop;
+			     after:
+			 - Exemplo:
+			Em C:
+			    while (a<=b ){
+				…
+				a++;
+			    }
+			Em Assembly:
+			    loop:
+				cmpl %ebx, %eax
+				jg after /* se a>b */
+				…
+				incl %eax
+				jmp loop
+			     after:
+		FOR:
+			- Estrutura básica:
+			    for (Init; Test; Update )
+				Body
+				
+			     Init;
+			     while (Test ) {
+				Body ;
+				Update ;
+			     }
+			   
+			    	init;
+			     loop:
+				if (!Test)
+				   goto after;
+				Body ;
+				Update ;
+				goto loop;
+			      after
+		CURTO CIRCUITO:
+			- É a condição quando fizermos uma condicional, e a primeira condição ser o suficiente para declarar o valor booleano da expressão, o bloco automaticamente pula para a instrução condicional correta. Exemplo: caso a primeira expressão seja False em um AND, temos um curto circuito de False. E se a primeira expressão for True em um OR, temos um curto circuito de True.
+			- Não existem operadores and e or lógicos nas linguagens de máquina!
+			- Exemplo:
+			     if ((a==b) || (c<d)){
+				  a = c;
+				  }
+			      c = d;
+			      
+			      cmp %ebx, %eax
+			      je L1
+			      cmp %edx, %ecx
+			      jge L2
+			    L1:
+			      movl %ecx, %eax
+			    L2:
+			      movl %edx, %ecx
+--------------------------------------------------------------------------------------------------------------------
+08/04 - Revisão de conteúdos:
+	- Como em C, devemos passar os parâmetros antes de chamar a função. Na tabela de registradores, temos registradores específicos para chamada de função, cujo possuem nomes diferentes para cada tamanho do tipo de máquina (64x32x16x8). Por exemplo, o primeiro parâmetro seria: rdi/edi/dil, segundo parâmetro seria: asi, esi, sil.
+	- Quando utilizar parâmetro estaremos trabalhando com o conteúdo do endereço da variável, como o ponteiro em C. 
+	- Lembrar que para cada registrador, devemos utilizar sempre o tamanho adequado da máquina. Visto que unsigned e signed muda para cada sistema.
+--------------------------------------------------------------------------------------------------------------------
+10/04/25 - Assembly: Chamada de Funções e Passagem de Parâmetros
+	- Em Assembly, temos como diferenciar se a representação em hexadecimal é positiva ou negativa, basta utilizar os jumps condicionais, como o jg.
+	- Lembrar que o heap fica antes da pilha, enquanto a pilha é escrita de maneira contrária, ou seja, de baixo para cima. Logo, se fizermos um call, ele empilhará as funções na ordem de chamada e finalizará de cima pra baixo. Assim, o endereços da memória continuarão crescendo, enquanto empilhamos de maneira contrária.
+	- Utilizamos as instruções pushq e popq para trabalhar com a pilha e endereço de %rsp (topo da pilha), sendo push para adicionar uma unidade de alocação e pop para retirar, logo o pushq para apontar o %rsp, e popq para sair da pilha.
+	- O %rsp é o registrador que aponta para o topo da pilha, além de armazenar apenas por 8 bytes (64 bits). Por isso, como a pilha tem que crescer (subir) em direção ao início da memória, utilizamos a subtração por múltiplos de 8 em %rsp para alocar um espaço. Se caso queira liberar o espaço, apenas fazemos a soma por múltiplos de 8. 
+	- Para realizar a chamada de funções, temos como armazenar apenas 6 valores inteiros (incluindo ponteiros) para os parâmentros vias registradores de argumentos. Visto que as instruções call e ret só transferem controle, não cuidam da passagem de valores. Os registradores são usados numa ordem especificada: 
+		→ %rdi, %rsi, %rdx, %rcx, %r8, %r9.
+	- Diferença de call f e jmp f, está que o call trabalha como return, ou seja, ele armazenará o valor de retorno na pilha. Por convenção para C na plataforma Linux x86-64 (ABI) estabelece que um valor inteiro (incluindo ponteiro) é retornado no registrador %rax (ou %eax, dependendo do tamanho). A instrução call transfere o controle para a função, - instrução no endereço de memória indicado (associado ao label) -, enquanto a instrução ret transfere o controle para o chamador - instrução seguinte ao call -. O endereço de retorno é armazenado (pelo hardware) na pilha de execução!
+	- Por isso, quando chamamos um procedimento, transferimos dados & controle de uma parte do código para
+outra: de chamador para chamado, e vice-versa, e parâmetros com valor de retorno. Deve saber também como a memória organiza os endereços de com a chamada e quando dá retorno de uma função (label).
+	- Temos como gravar os endereços, por meio da instrução move em armazenar valores, como variáveis globais. Mas antes, devemos realizar o pushq de %rbp, mover o valor do endereço para o topo (%rsp) e por fim subtrair pela regra dos múltiplos de 8 para a quantidade de informações que deseja armazenar.
+	- Exemplo de chamada:
+		- Em C: 
+			printf(“%d\n”, sum);
+		- Em Assembly: 
+			Sf: .string “%d\n”
+			. . .
+			/* assumindo que o valor de sum está em %eax */
+			movq $Sf, %rdi /* primeiro parâmetro */
+			movl %eax, %esi /* segundo parâmetro */
+			movl $0, %eax /* caso especial para printf */
+			call printf
+--------------------------------------------------------------------------------------------------------------------
+15/04/25 - Assembly: Parâmetros e Registro de Ativação
+	- Para cada chamada de uma função, sempre empilhará um valor de retorno. No caso, se tivermos uma recursão, ela empilhará todas os valores até finalizar com o último retorno.
+	- Realizamos a instrução (subq $<multiplo_de_8>, %rsp) para armazenar um valor em um espaço de memória. Sendo uma maneira mais rápido que realizar um malloc para casos de armazenamento pequeno. E por fim, para desempilhar basta adicionarmos (addq $<multiplo_de_8>, %rsp) para retirar o espaço utilizado.
+	- Diferente do sub e add, o push serve para ...
+	- Para armazenar um valor (de maneira genérica):
+		subq $32, $rsp
+		movl $1, 8(%rsp)
+		
+		- Não devemos mudar o valor de referência de rsp (topo da pilha), logo utilizamos 8 para deslocar os 8 bits. Além disso, caso realizado um pushq, perdemos a informação de rsp. 
+			|     |
+			|     |
+			|_____|
+			| r11 | <- RSP
+			|-----|
+			|  |  |
+			|-----|
+			|_____|
+			|     |
+			|-----| <- end_ret
+	- RBP (Base Pointer) é um registrador fixo, que aponta para a base da pilha.
+		- Fazemos pushq %rbp para chamada do endereço da base da pilha, antes do enedereço de retorno.
+		- Fazemos movq %rsp, %rbp fará então o apontamento para o endereço da base da pilha.
+		- Fazemos o subq $32, %rsp para delimitar o tamanho do espaço para armazenar os valores (no caso 4 células), sempre o RSP acima de RBP.
+		- Podemos utilizar o RBP para realizar move de valores, visto que é um endereço fixo e sem precisar do registrado dinâmico RSP. Logo, podemos realizar da mesma forma que movl $1, 8(%rsp), seria de boa prática o uso de movl $1, -8(%rbp).
+			f:
+			   pushq, %rbp
+			   movq %rsp, %rbp
+			   subq $32, $rsp
+			   movl $1, -24(%rbp)
+	- A utilidade dos registradores está na velocidade de acesso de memórias do chip, ao invés de leitura de memória. Para saber se devo utilizar os registradores, devemos saber o callee-saved para armazenar valores tanto das funções de chamadadoras (caller-saved), quanto de chamada (callee-saved). Por isso, quando queremos armazenar os espaços por move no início, chamamos na ordem de registrador %bx/%ebx/%rbx, e depois com os %r12/%r12d/%r12w até %r15/%15d/%r15w. E depois, fazemos o add para retirar os espaços armazenados desses registradores pelos valores armazenados, e por fim o fazemos o retorno do %rsp para a base (%rbp), que pode ser feita através do comando "leave" e popq %rbp para saída da pilha.
+		pushq   %rbp
+  		movq    %rsp, %rbp
+  		subq    $16, %rsp
+  		movq    %rbx, -8(%rbp)
+  		movq    %r12, -16(%rbp)
+  		~~~~~~~~~~~~~~~~~~~~~~~
+  		movq  $0, %rax  /* rax = 0  (valor de retorno) */
+  		movq  -8(%rbp), %rbx
+  		movq  -16(%rbp), %r12
+  		leave ;; o mesmo que (%movq %rsp, %rsp)
+  		ret   
+24/04 - Parâmetros e Registro de Ativação:
+	- Memória cresce para baixo, e uma pilha cresce para cima. 
+	- %rsp aponta para o último valor empilhado.
+	- Para acessar a pilha, podemos utilizar %rsp para acessar a partir do último valor (topo) empilhado, enquanto o $rbp travará no início (base) da pilha, também chamamos essa região de empilhamento como registro de ativação (RA).
+	- Na execução da inicialização, deve lembrar que no início da memória teremos o endereço de retorno. 
+		|____|
+		|    |						pushq %rbp 
+		|____|						movq %rsp, %rbp
+		|    | <- rbp cham. (movq %rsp, %rbp)
+		|____|
+		|    | <- end ret
+		|____|
+		|    |
+		|____|
+
+	- Para deslocar um espaço para armazenar um valor (como variável global) devemos subtrair o endereço de memória de %rsp pelo tamanho que queremos "alocar" (múltiplos de 8) e depois declarar os espaços pelos calle saved.
+		|____|			       _
+		|    | <- r12 aut (rsp)		|		pushq %rbp
+		|____|				|		movq %rbp, %rsp
+		|    | <- rbx aut 		| RA		subq $16, %rsp
+		|____|				|		movq %rbx, -8(%rbp)
+		|    | <- rbp cham. (rbp) 	|		movq %r12, -16(%rbp)
+		|____|			       -
+		|    | <- end ret
+		|____|
+		|    |
+		|____|
+
+	- Para sair da pilha, realizamos então o inverso: fazemos o a adição dos valores "alocados" e realizar um pop.
+		|____|
+		|    | 				pushq %rbp
+		|____|				movq %rbp, %rsp
+		|    | 				subq $16, %rsp
+		|____|				movq %rbx, -8(%rbp)
+		|    | 				movq %r12, -16(%rbp)
+		|____|				....
+		|    | <- end ret		movq -8(%rbp), %rbx  
+		|____|				movq -16(%rbp), %r12
+		|    |				leave
+		|____|				ret
+
+		- Leave corresponde ao mesmo que:
+			movq %rbp, %rsp (realiza o mesmo que addq $16, %rsp)
+			popq %rbp
+
+	- Os registradores são armazenados como variáveis globais. Uma ideia de armazenarmos os valores nos registradores dentro da pilha se dá porque os registradores são passíveis de alterarem ao puxarmos uma função.
+--------------------------------------------------------------------------------------------------------------------
+29/04 - GDB: DEBUGGING
+- Faça gcc -Wall -o test test.c -g para utilizar para debug.
+- Utilizar gdb para depurar e debuggar o código, e realizar os comandos exclusivos de gdb para debuparar.
+------------------------------------------------------------------------------------------------------------------
+06/05 - REVISAO:
+
+- Traduza:
+	struct X {
+	  int val;
+	  struct X *next;
+	};
+
+	int add (struct X *x) {
+	  int a = 0;
+	  for (; x != NULL; x = x->next)
+	    a += x->val;
+	  return a;
+	}
+	
+	- Em assembly, nao temos struct: mas acessaremos por ponteiro. Logo:
+		.data
+		.text
+		.global add
+		add:
+		   pushq %rbp
+		   movq %rsp, %rbp
+		   \\ subq $?, %rbp  Nao precisaremos salvar valores locais por nao precisar chamar uma função nesse codigo - o que poderia alterar o valor dos registradores quando fosse chamada a funçao.
+		   
+		   movl $0, %eax \\ int a = 0;
+		for:
+		   cmpq $0, %rdi \\ x != NULL -> Valor nulo eh o mesmo que 0;
+		   je saiFora
+		   addl (%rdi), %eax \\ a += x->val 
+		   
+		   \\ acesso: |val|val|val|val|P|P|P|P|next|next|next|next|next|next|next||next
+		   movq 8(%rdi), %rdi \\ x = x->next;    podemos tambem fazer também:  addq $8, %rdi
+		   jmp for
+		saifora:
+		   leave
+		   ret
+		   
+- Traduza a funçao fat abaixo para assembly. 
+	int fat (int n) {
+	  if (n==0) return 1;
+	  else return n*fat(n-1);
+	}
+
+	- Em assembly para realizar a recursao:
+	.data
+	.text
+	.global fat
+	fat:
+	    pushq %rbp
+	    movq %rsp, %rbp
+	    subq $16, %rsp \\ lembrar de deve ser multiplo de 16, mesmo tendo apenas um valor local.
+	    cmpl $0, %edi \\ if (n == 0)
+	    je saiFora
+	    movl %edi, -4(%rbp) \\ n 
+	    decl %edi \\ n -1
+	    call fat  \\ fat(n-1)
+	    imull -4(%rbp), %eax \\ n * fat(n-1);
+	    leave
+	    ret
+	saiFora:
+	   movl $1, %eax \\ return 1
+	   leave
+	   ret
+--------------------------------------------------------------------------------------------------------------------
+13/05 - PROCEDIMENTOS: VARIÁVEIS LOCAIS:
+
+- Relembrando o armazenamento de valores de variáveis locais na pilha, para não perder os valores após a chamada de uma função. Visto que quando pedir o endereço, o registrador pode sofrer uma alteração de valor.
+- Utilizaremos operação leaq para realizar 
+--------------------------------------------------------------------------------------------------------------------
+15/05 - INVASÃO DE PILHA DE EXECUÇÃO
+
+- Com a sobrescreção do leave e ret na pilha de execução - passando valores maiores que o esperado -, conseguimos fazer um buffer overflow attack, fazendo com que não haja retorno.
+- Os sistemas atuais possuem proteção contra esse tipo de ataque, em Linux podemos burlar utilizando:
+	- gcc -fno-stack-protector -Wa,--execstack <nome_executável> <arquivo_c>
+	- setarch x86_64 -R /bin/bash     // desabilitar a randomização de endereços, que impede que os endereços dos dados de um programa (e de sua pilha) sejam sempre os mesmos, em qualquer execução desse programa.
+--------------------------------------------------------------------------------------------------------------------
+20/05 - Código de Máquina:
+
+- Quando escrevemos um código de máquina (assembly), ela há uma lógica de escrita e interpretada pela máquina. Por exemplo:
+	- Em C:
+		int foo (int x) {
+		  return x+1;
+		}
+	- Em assembly:
+		.text
+		.globl foo
+
+		foo:
+
+		movl %edi, %eax
+		addl $1, %eax
+		ret
+
+	- Para visualizar o código de máquina do programa gerado pelo gcc -c -o foo.o foo.s para traduzir o programa para linguagem de máquina (o gcc vai gerar um arquivo foo.o), usando o comando objdump -d foo.o (a opção -d do objdump faz um "disassembly" do arquivo objeto). 
+		- Será gerado: 
+			foo.o:     file format elf64-x86-64
+
+
+			Disassembly of section .text:
+
+			0000000000000000 <foo>:
+			   0:   89 f8                   mov    %edi,%eax
+			   2:   83 c0 01                add    $0x1,%eax
+			   5:   c3                      ret
+		- Observe que há valores 89, 83, c3 na parte de código de máquina. Esses valores correspondem à um código que corresponde à operação da máquina, logo na sequência corresponderia o mov, add e ret. Dessa maneira, o código .o, irá gerar o código.
+		- Podemos copiar o código de máquina e executar em uma função C, por exemplo o código abaixo utiliza a função esperada acima:
+			#include <stdio.h>
+			#include <string.h>
+			#include <ctype.h>
+
+			typedef int (*funcp) (int x);
+
+			int main(void) {
+			    unsigned char codigo[] = {0x89, 0xf8, 0x83, 0xc0, 0x01, 0xc3};
+
+			    funcp f = (funcp)codigo;
+
+			    int i = (*f)(10);
+
+			    printf("%d\n", i); 
+			    return 0;
+			}
+			- Podemos executar por meio de gcc -Wall -Wa,--execstack -o seuprograma seuprograma.c, sendo que para permitir a execução do código de máquina (sem a opção -Wa,--execstack, o sistema operacional abortará o seu programa, por tentar executar um código armazenado na área de dados). Execute o programa resultante e verifique a sua saída.
+			
+	- Um conceito importante é de endereço de funções, quando realizamos um call, ele buscará pelo endereço da função dentro código de máquina e adicionará para o código e8 xx xx xx xx o endereço da subtração do endereço da função pelo endereço do call (chamamos de deslocamento relativo), podendo ser que a função esteja depois, retornando um valor de endereço positivo, ou negativo - quando a função está antes do call - e retornando endereço com a representação em formato negativo. Por exemplo:
+	- Em C:
+		int foo (int x) {
+		  return add(x);
+		}
+		
+	- Em Assembly:
+		.text
+		.globl foo
+
+		foo:
+
+		pushq %rbp
+		movq %rsp, %rbp
+		call add
+		leave
+		ret
+		
+	- Obtemos como resultado de dumo
+		0000000000000000 <foo>:
+		   0:   55                      push   %rbp
+		   1:   48 89 e5                mov    %rsp,%rbp
+		   4:   e8 00 00 00 00          call   9 <foo+0x9>
+		   9:   c9                      leave
+		   a:   c3                      ret
+	- Observe que podemos adicionar um endereço no espaço de 00 00 00 00, já que não foi encontrado a função add, portanto não foi realizado nenhum deslocamento.
+		- Existe outro código para chamar o call para mais bytes de deslocamento, mas não será necessário.
+------------------------------------------------------------------------------------------------------------------
+29/05 - INSTRUÇÕES DE PONTO FLUTUANTE:
+
+- Conversão em Ponto Flutuante:
+	- Exemplo: float de 70,625 decimal
+	- 1º Convertemos a parte inteiro normalmente para binário: (0)100 0110,xxxxx
+	- 2º Quanto a parte decimal:
+		- Deve realizar a multiplicação por dois (a base binária). Pegar apenas a parte decimal desse valor até encontrar um valor que seja igual a 1.
+			- 1ª 0.625 x 2 = 1.25 (parte inteira 1)
+			- 2ª 0.250 x 2 = 0.5  (parte inteira 0)
+			- 3ª 0.500 x 2 = 1.0  (parte inteira 1)
+		- Por fim, juntando os bits obtidos na ordem das partes inteiras na ordem crescente.
+			- No caso, então teremos como representação 0.625 = 0,101 (em binário)
+	- 3º Andar com a vírgula até uma unidade: 1,000110101 x 2⁶
+	- 4º Montar o formato padrão de ponto flutuante:
+		- S = 0, não é valor negativo.
+		- Exp = 6 (base) -> ExpD = Exp + Bios = 6 * 127 (Valor padrão float) = 133d = 1000101b
+		- Fração = 0100 0010 1000 1101 0100 0000 0000 0000 0000 0000
+		            ^    ^    ^                                  ^
+		            |____|    |__________________________________|
+		          Exp 4 2    Frac  8  D   4   0  0   0    
+
+- Ponto Flutuante em C:
+	- lgumas macros úteis:
+    		- Macro para para compor a representação de um valor float, dados seus componentes (s,frac,exp):
+    			#define makefloat(s,e,f) ((s & 1)<<31 | (((e) & 0xff) << 23) | ((f) & 0x7fffff))
+    		- Macros para extrair as partes de um float a partir da sua representação:
+    			#define getsig(x)  ((x)>>31 & 1)
+    			#define getexp(x)  ((x)>>23 & 0xff)
+    			#define getfrac(x) ((x) & 0x7fffff)
+  
+- Pontos Flutuantes em Assembly:
+	- Em linguagem de máquina, não temos a opção de realizar movl $70,625, %eax. Pois, estamos lidando com um move (movl) para valores de inteiro, e também estamos trabalhando com o tipo de registrador para inteiros (%eax). 
+		- Sendo assim, mudaremos para o movl para movs(s|d) onde trabalharemos com um valor escalar para valor de float ou double.
+		- E por fim com os valores de registradores %xmm0 a %xmm15 (com até 8 argumentos aceitáveis para ponto flutuante %xmm0 a %xmm7 - podem ser sobrescritos pela função chamada, assim como os outros registradores). Sendo para valor de retorno de uma função chamada o registrador %xmm0 será utilizado para armazenar o valor.
+			- Exemplo de arguntomentos:
+				double foo (float f, int i, double d {...}
+						^     ^       ^
+						|     |       |
+					      %xmm0  %edi   %xmm1
+	- Também podemos realizar a converão de dados, cvtsi2s(s|d|sq|dq) convertendo de ponto flutuante para inteiro, long, ou long long... Mas para conversão de valores de inteiro ou long para float ou double, fazemos cvtsi2s(s|d)q.
+	- Para operações com valores de double, basta acrescentar <operacao>s(s|d), por exemplo addss de adição de floats e mulsd de multiplicação de doubles.
+	- Para comparação, tembém há mudança: utilizaremos ucomis(s|d) para condicionais
+	- Para armazenar valores, não mudará muito, apenas comandos de move.
+		double boo(double x);
+		double foo (double a, double b) {
+			return a + boo(b);
+		}
+		
+		foo:
+		   pushq %rbp
+		   movq %rsp, %rbp
+		   subq $16, %rsp /* espaço na pilha para a */
+		   movsd %xmm0, -8(%rbp) /* guarda a */
+		   movsd %xmm1, %xmm0 /* parametro b para boo */
+		   call boo /* retorno em %xmm0 */
+		   addsd -8(%rbp), %xmm0 /* soma a */
+		   leave
+		   ret
+------------------------------------------------------------------------------------------------------------------
+12/06 - LIGAÇÃO E RELOCAÇÃO DE PROGRAMAS:
+
+- Linker/Amarrador corresponde à última etapa da compilação de um módulo em C. Sendo responsável por conversar com as dependências de outros móduloes (e bibliotecas). E por fim também por declarar o endereços relativos aos módulos (relocação). 
+- Ao escrever em C, podemos ter três típos de valores: valores locais (variáveis declaradas dentro apenas da função), valores externos (corresponde as variáveis exportadas de um outro módulo) e funções externas (são valores de retornos declaradas como #declare). 
+- Em Assembly temos as instruções de movl, call, e entre outras formas de chamada e endereçamento de valores. Lembrando que quando realizamos um call deve apontar para o endereço da função onde está declarada para assim realizar o deslocamento (utilizando o e8 xx xx xx xx).
+	- Em C:
+		extern int var1;
+		void fun1 (int x);
+		int var2 = 0;
+		int fun2() {
+		…
+		    fun1(var1);
+		    …
+		}
+	
+	- Em Assembly:
+		.data
+		.globl var2
+		var2: int 0
+		.text
+		.globl fun2
+		fun2: pushq %rbp
+		     …
+		     movl var1, %edi
+		     call fun1
+	
+	- Em Linguagem de Máquina:
+		00 00 00 00	<- off var2
+		
+		55		<- off fun2
+		…
+		8b 3c 25 00 00 00 00	<- ref va1
+		e8 00 00 00 00		<- ref fun1
+
+- A partir da declaração, devemos fazer a tabela de símbolos onde teremos as funções e variáveis criadas, seguida do símbolo do tipos valor:  
+	- 1. T (Text Section):
+    		Significado: O símbolo T refere-se à "Text Section", que é a seção de código executável de um programa.
+    		Quando ocorre: Ele é usado para marcar símbolos (funções) que estão na seção de código (onde o código executável está armazenado).
+    		Exemplo: Se você tiver uma função main() ou qualquer outra função definida em seu código fonte, o símbolo referente a essa função será marcado com T, porque está na seção de código.
+
+	- 2. D (Data Section):
+		Significado: O símbolo D refere-se à "Data Section". Ele é usado para variáveis globais e estáticas que são inicializadas.
+		Quando ocorre: É utilizado para identificar símbolos de variáveis que têm valores já definidos no código, e são armazenados na seção de dados.
+		Exemplo: Se você tem uma variável global como int x = 10;, o símbolo correspondente a x será marcado com D, porque ela está armazenada na seção de dados.
+
+	- 3. U (Undefined):
+		Significado: O símbolo U significa "Undefined". Esse tipo de símbolo indica que o símbolo (geralmente uma função ou variável) está sendo referenciado, mas ainda não foi definido no arquivo objeto atual.
+		Quando ocorre: Ele é usado quando uma referência é feita a uma função ou variável que ainda não foi resolvida ou definida, mas será resolvida durante o processo de linkedição (ou seja, em outro arquivo objeto ou na biblioteca).
+		Exemplo: Se você usar uma função de uma biblioteca externa, como printf() da biblioteca padrão, o símbolo correspondente será marcado com U no arquivo objeto, pois ainda não foi definido naquele arquivo, mas será resolvido pelo linker durante a ligação.
+		
+	- 4. t (minúsculo):
+    		Significado: O símbolo t (minúsculo) indica que o símbolo (normalmente uma função) está local àquele arquivo objeto e não deve ser acessado por outros módulos ou arquivos objeto. Isso significa que a função é "estática" (usando o modificador static).
+		Quando ocorre: Quando uma função é definida com o modificador static, ela só pode ser acessada dentro do próprio arquivo e o linker marca esse símbolo com t. O linker trata isso como um símbolo de escopo limitado.
+    		Exemplo: Uma função como static int soma(int a, int b) { return a + b; } só pode ser chamada dentro do mesmo arquivo e será marcada com t.
+	
+	- Exemplo:
+		extern int var1;
+		void fun1 (int x);
+		int var2 = 0;
+		int fun2() {
+		    …
+	 	    fun1(var1);
+		    …
+		}
+		
+		var2	D	<off var2>
+		fun2 	T 	<off fun2>
+		var1 	U
+		fun1 	U
+		
+- Tendo a tabela de símbolo, devemos montar o dicionário de relocação onde teremos a referências dos outros módulos, para o caso do exmeplo acima:
+	- ref var1> ref var1
+	- <ref fun1> ref rel fun1
+	
+	- E por fim, devemos então acessar o outro módulo de referência e buscar os endereços das variáveis e funções associadas na memória e verificar seus estados de referência/tabela de símbolos, assim buscando as cada referência externa deve ser associada a uma definição única (exportação) de um símbolo com o mesmo nome:
+		- se nenhuma definição com esse nome é encontrada, o ligador termina com erro
+		- se há duas (ou mais) definições com o mesmo nome, o ligador também termina com erro
+		- referências externas ou a endereços que dependem da localização "final" do trecho de código/dados correspondente
+			- Dicionário de Relocação
+			  <ref var2> 	ref	var2
+			  <ref fun1> 	ref 	rel fun1
+		
+- Referências em C: É importante distinguir definição e referência
+	- uma definição estabelece o módulo que “possui” o símbolo, e a representação na memória (localização, tamanho, …)
+	- Abordagem adotada por sistemas Linux, em geral:
+		 declaração com inicialização é definição (símbolo “forte”)
+			int i = 1024;
+		 declaração com classe extern é referência
+			extern int i;
+		 declaração sem inicialização (e sem extern) é símbolo “fraco”
+			int i;
+	- Dica: Um símbolo global deve ser declarado com o mesmo tipo em todos os módulos
+		 a resolução de referências é feita com base apenas no nome!
+		 o compilador não tem como garantir consistência a não ser com o uso de arquivos de cabeçalho ("interface")
+		
+- Carga e Relocação: Na ligação, as referências à memória são calculadas em relação ao endereço "virtual" do programa:
+	 quando o programa é carregado na memória, essas referências devem ser relocadas em relação ao endereço "real"
+	 essa relocação pode ser feita através de uma tradução de endereços feita pelo hardware
+
+- Bibliotecas Dinâmicas: 
+	- Carregadas na memória e "ligadas" em tempo de execução a um programa.
+		 shared objects (.so), dynamic link libraries (.dll)
+	- Melhor aproveitamento de espaço
+		 bibliotecas estáticas são incorporadas no programa
+		 bibliotecas dinâmicas (código) são compartilhadas
+	- A carga e ligação da biblioteca é realizada por um ligador dinâmico.
