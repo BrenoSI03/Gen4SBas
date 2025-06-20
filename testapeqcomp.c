@@ -1,4 +1,4 @@
-#include <stdio.h>
+/* #include <stdio.h>
 #include <stdlib.h>
 #include "peqcomp.h"
 
@@ -40,12 +40,12 @@ int main(int argc, char *argv[]) {
 
     printf("Resultado para p1=%d p2=%d p3=%d → %d\n", p1, p2, p3, result);
     return 0;
-}
+} */
 
 
 
 
-/* 
+
 // testapeqcomp.c
 #include <stdio.h>
 #include <stdlib.h>
@@ -85,7 +85,7 @@ int main(int argc, char *argv[]){
     printf("Resultado para %d → %d\n", param, res);
     return 0;
 }
- */
+
 /* #include <stdio.h>
 #include <stdlib.h>
 #include "peqcomp.h"
