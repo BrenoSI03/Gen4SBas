@@ -1,7 +1,8 @@
-// f(x,y) = (x+y)*(x-y)
-v1 : p1      // 1
-v2 : p2      // 2
-v3 = v1 + v2 // 3
-v4 = v1 - v2 // 4
-v1 = v3 * v4 // 5
-ret v1       // 6
+v1 : p1      // 1: obtem argumento
+v2 : $1      // 2: Inicializa valor do fatorial
+v3 : $0      // 3: para poder fazer um desvio incondicional
+iflez v1 8   // 4: termina o loop quando n == 0
+v2 = v2 * v1 // 5: atualiza fatorial
+v1 = v1 - $1 // 6: decrementa n
+iflez v3 4   // 7: volta ao teste do loop
+ret v2       // 8: retorna o valor do fatorial

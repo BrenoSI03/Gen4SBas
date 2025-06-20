@@ -2,7 +2,10 @@
 #include <stdlib.h>
 #include "peqcomp.h"
 
-/* Mostra os 64 primeiros bytes gerados (independentemente de RET). */
+// Assinatura para até três parâmetros
+typedef int (*func3_t)(int, int, int);
+
+// Imprime índice + byte em hex dos 64 primeiros bytes
 static void dump_code(const unsigned char *code) {
     puts("Machine code (primeiros 64 bytes):");
     for (int i = 0; i < 64; ++i) {
@@ -12,40 +15,38 @@ static void dump_code(const unsigned char *code) {
 }
 
 int main(int argc, char *argv[]) {
-    if (argc < 3) {
-        fprintf(stderr, "Uso: %s <p1> <p2>\n", argv[0]);
+    if (argc < 4) {
+        fprintf(stderr, "Uso: %s <p1> <p2> <p3>\n", argv[0]);
         return 1;
     }
     int p1 = atoi(argv[1]);
     int p2 = atoi(argv[2]);
+    int p3 = atoi(argv[3]);
 
-    FILE *f = fopen("programa.sbas", "r");
-    if (!f) { perror("programa.sbas"); return 1; }
+    FILE *fp = fopen("programa.sbas", "r");
+    if (!fp) {
+        perror("programa.sbas");
+        return 1;
+    }
 
-    unsigned char code[1024];
-    funcp fn = peqcomp(f, code);
-    fclose(f);
+    unsigned char code[4096];
+    funcp gen = peqcomp(fp, code);
+    fclose(fp);
 
     dump_code(code);
 
-    /* chama fn(p1,p2)  — p1 (EDI) já virá via operando 'D', p2 (ESI) setamos manual */
-    int result;
-    asm volatile (
-        "mov %[p2], %%esi\n\t"   /* p2 → ESI */
-        "call *%[fun]\n\t"       /* EDI já contém p1 */
-        : "=a"(result)           /* EAX ← resultado */
-        : [fun]"r"(fn), [p1]"D"(p1), [p2]"r"(p2)
-        : "esi", "memory"
-    );
+    func3_t f = (func3_t)gen;
+    int result = f(p1, p2, p3);
 
-    printf("Resultado para p1=%d p2=%d → %d\n", p1, p2, result);
+    printf("Resultado para p1=%d p2=%d p3=%d → %d\n", p1, p2, p3, result);
     return 0;
 }
 
 
 
 
-/* // testapeqcomp.c
+/* 
+// testapeqcomp.c
 #include <stdio.h>
 #include <stdlib.h>
 #include "peqcomp.h"
@@ -83,8 +84,8 @@ int main(int argc, char *argv[]){
     int res = func(param);
     printf("Resultado para %d → %d\n", param, res);
     return 0;
-} */
-
+}
+ */
 /* #include <stdio.h>
 #include <stdlib.h>
 #include "peqcomp.h"
