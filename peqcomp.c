@@ -4,95 +4,113 @@
 #include <ctype.h>
 #include "peqcomp.h"
 
-#define MODRM(src, dst) (0xC0 | (((src)&7)<<3) | ((dst)&7))
+#define MODRM(src,dst) (0xC0 | ((src)<<3) | (dst))
 
-static int reg_for(const char *tok) {
-    if (tok[0] == 'v' && isdigit((unsigned char)tok[1])) {
-        return tok[1] - '1';  
-    }
-    if (tok[0] == 'p' && tok[1] == '1') {
-        return 7;  // p1 em EDI
-    }
+typedef struct {
+    char txt[256];   /* linha limpa (sem comentários)   */
+    int  addr;       /* offset da linha no código gerado */
+} Instr;
+
+/* v1-v4 → EAX,ECX,EDX,EBX (0-3) ; p1 → EDI (7) ; p2 → ESI (6) */
+static int reg_for(const char *t){
+    if (t[0]=='v' && isdigit((unsigned char)t[1])) return t[1]-'1';
+    if (!strcmp(t,"p1")) return 7;
+    if (!strcmp(t,"p2")) return 6;
     return -1;
 }
 
-funcp peqcomp(FILE *f, unsigned char *code) {
-    char linha[256];
-    int idx = 0;
+funcp peqcomp(FILE *fp, unsigned char *code){
+    Instr prog[128];
+    int n=0, pc=0;
 
-    while (fgets(linha, sizeof(linha), f)) {
-        // Remove comentário
-        char *cmt = strstr(linha, "//");
-        if (cmt) *cmt = '\0';
-
-        // Remove espaços iniciais
-        char *p = linha;
-        while (*p && isspace((unsigned char)*p)) p++;
+    /* ---------- 1ª PASSADA ---------- */
+    char buf[256];
+    while (fgets(buf,sizeof buf,fp)){
+        char *c=strstr(buf,"//"); if (c) *c='\0';
+        char *p=buf; while (isspace((unsigned char)*p)) p++;
         if (!*p) continue;
+        strcpy(prog[n].txt,p);
+        prog[n].addr = pc;
 
-        // ret
-        char var_ret[16];
-        if (sscanf(p, "ret %15s", var_ret) == 1) {
-            int r = reg_for(var_ret);
-            if (r >= 0 && r != 0) {
-                code[idx++] = 0x89;
-                code[idx++] = MODRM(r, 0);
+        if (!strncmp(p,"iflez",5))                  pc+=5;
+        else if (!strncmp(p,"ret",3))
+            pc+=(strchr(p,'$')?6:3);
+        else if (strchr(p,'=')){
+            pc+=(strchr(p,'*')?3:(strchr(p,'$')?4:2));
+        } else if (strchr(p,':')){
+            pc+=(strchr(p,'$')?5:2);
+        }
+        n++;
+    }
+
+    /* ---------- 2ª PASSADA ---------- */
+    pc=0;
+    for (int i=0;i<n;i++){
+        char *p = prog[i].txt;
+        char A[16],B[16],C[16];
+
+        /* ret */
+        if (sscanf(p,"ret %15s",A)==1){
+            if (A[0]=='$'){
+                int v=atoi(A+1);
+                code[pc++]=0xB8;
+                code[pc++]=v&0xFF; code[pc++]=v>>8;
+                code[pc++]=v>>16;  code[pc++]=v>>24;
+            } else {
+                int r=reg_for(A);
+                if (r>0){ code[pc++]=0x89; code[pc++]=MODRM(r,0); }
             }
-            code[idx++] = 0xC3;
-            break;
+            code[pc++]=0xC3;
+            continue;
         }
 
-        // iflez
-        char condvar[16];
-        int offset;
-        if (sscanf(p, "iflez %15s %d", condvar, &offset) == 2) {
-            int rv = reg_for(condvar);
-            if (rv >= 0) {
-                code[idx++] = 0x83;
-                code[idx++] = MODRM(7, rv);  // CMP r/m32, imm8
-                code[idx++] = 0x00;         // cmp com 0
-                code[idx++] = 0x7E;         // JLE rel8
-                code[idx++] = (unsigned char)offset;
+        /* iflez */
+        int lin;
+        if (sscanf(p,"iflez %15s %d",A,&lin)==2){
+            int r=reg_for(A);
+            code[pc++]=0x83; code[pc++]=MODRM(7,r); code[pc++]=0x00;
+            code[pc++]=0x7E;
+            int rel = prog[lin-1].addr - (pc+1);
+            code[pc++]=(unsigned char)rel;
+            continue;
+        }
+
+        /* operações = */
+        char op;
+        if (sscanf(p,"%15s = %15s %c %15s",A,B,&op,C)==4){
+            int ra=reg_for(A), rb=reg_for(B);
+            code[pc++]=0x89; code[pc++]=MODRM(rb,ra);
+
+            if (C[0]=='$'){
+                int v=atoi(C+1);
+                code[pc++]=0x83;
+                code[pc++]=(op=='+'?(0xC0|ra):(op=='-'?(0xE8|ra):0));
+                code[pc++]=(unsigned char)v;
+            } else {
+                int rc=reg_for(C);
+                if (op=='+'){ code[pc++]=0x01; code[pc++]=MODRM(rc,ra); }
+                else if(op=='-'){ code[pc++]=0x29; code[pc++]=MODRM(rc,ra); }
+                else if(op=='*'){
+                    code[pc++]=0x0F; code[pc++]=0xAF; code[pc++]=MODRM(rc,ra);
+                }
             }
             continue;
         }
 
-        // atribuição com operação
-        char dst[16], src[16], op, imm[16];
-        if (sscanf(p, "%15s = %15s %c %15s", dst, src, &op, imm) == 4) {
-            int rd = reg_for(dst);
-            int rs = reg_for(src);
-            if (rd >= 0 && rs >= 0) {
-                if (rd != rs) {
-                    code[idx++] = 0x89;
-                    code[idx++] = MODRM(rs, rd);
-                }
-                if (imm[0] == '$') {
-                    int val = atoi(imm + 1);
-                    code[idx++] = 0x83;
-                    if (op == '+') {
-                        code[idx++] = 0xC0 | rd;
-                    } else if (op == '-') {
-                        code[idx++] = 0xE8 | rd;
-                    }
-                    code[idx++] = (unsigned char)val;
-                }
-            }
-            continue;
-        }
-
-        // atribuição direta
-        char var1[16], var2[16];
-        if (sscanf(p, "%15s : %15s", var1, var2) == 2) {
-            int rd = reg_for(var1);
-            int rs = reg_for(var2);
-            if (rd >= 0 && rs >= 0) {
-                code[idx++] = 0x89;
-                code[idx++] = MODRM(rs, rd);
+        /* atribuições : */
+        if (sscanf(p,"%15s : %15s",A,B)==2){
+            int ra=reg_for(A);
+            if (B[0]=='$'){
+                int v=atoi(B+1);
+                code[pc++]=0xB8|ra;
+                code[pc++]=v&0xFF; code[pc++]=v>>8;
+                code[pc++]=v>>16;  code[pc++]=v>>24;
+            } else {
+                int rb=reg_for(B);
+                code[pc++]=0x89; code[pc++]=MODRM(rb,ra);
             }
             continue;
         }
     }
-
-    return (funcp) code;
+    return (funcp)code;
 }
