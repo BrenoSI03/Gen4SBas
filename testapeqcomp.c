@@ -45,7 +45,7 @@ int main(int argc, char *argv[]) {
 
 
 
-
+/* 
 // testapeqcomp.c
 #include <stdio.h>
 #include <stdlib.h>
@@ -74,25 +74,46 @@ int main(int argc, char *argv[]){
     if (!myfp) { perror("fopen"); return 1; }
 
     unsigned char codigo[1024];
-    funcp func = peqcomp(myfp, codigo);
+    funcp funcaoSbas = peqcomp(myfp, codigo);
     fclose(myfp);
 
     // 1) Espia os bytes gerados:
     dump_code(codigo);
 
     // 2) Executa com o seu argumento
-    int res = func(param);
+    int res = funcaoSbas(param);
     printf("Resultado para %d → %d\n", param, res);
     return 0;
-}
+} */
 
-/* #include <stdio.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include "peqcomp.h"
 
 typedef int (*func2_t)(int, int);
 
-int main(void) {
+// Imprime índice + byte em hex dos 64 primeiros bytes
+static void dump_code(const unsigned char *code) {
+    printf("Machine code bytes:\n");
+    for (int i = 0; i < 64; i++) {
+        printf("[%02d] %02X ", i, code[i]);
+        // se a sequência anterior for 5D 5B e agora  C3, é o RET real
+        if (i >= 2
+            && code[i-2] == 0x5D
+            && code[i-1] == 0x5B
+            && code[i]   == 0xC3) {
+            break;
+        }
+    }
+    printf("\n\n");
+}
+
+int main(int argc, char *argv[]) {
+    if (argc < 3) {
+        fprintf(stderr, "Uso: %s <p1> <p2>\n", argv[0]);
+        return 1;
+    }
+
     FILE *myfp;
     unsigned char codigo[1024]; // Vetor de código de máquina
     func2_t funcaoSBas;
@@ -108,11 +129,15 @@ int main(void) {
     funcaoSBas = (func2_t) peqcomp(myfp, codigo);
     fclose(myfp);
 
-    // Chama a função gerada com os valores 10 e 20
-    res = funcaoSBas(10, 20);
+    // 1) Espia os bytes gerados:
+    dump_code(codigo);
 
-    printf("Resultado: %d\n", res);
+    // Chama a função gerada com os valores 10 e 20
+    int p1 = atoi(argv[1]);
+    int p2 = atoi(argv[2]);
+    res = funcaoSBas(p1, p2);
+
+    printf("Resultado para p1=%d p2=%d → %d\n", p1, p2, res);
 
     return 0;
 }
- */
