@@ -1,3 +1,13 @@
+/*
+ * Carolina de Assis Souza 2320860 3WC
+ * Breno de Andrade Soares 2320363 3WC
+ * ------------
+ * Este programa é responsável por compilar um arquivo SBas e executar
+ * o código de máquina gerado. Ele aceita até três argumentos numéricos
+ * na linha de comando, que são passados como parâmetros para a função
+ * compilada. 
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include "peqcomp.h"
@@ -57,7 +67,6 @@ int main(int argc, char *argv[]) {
 
     /* 
      * A chamada abaixo é opcional e usada apenas para testes e verificação dos bytes gerados.
-     * Pode ser comentada caso o objetivo seja apenas executar o programa sem inspeção.
      */
     // dump_code(code);
 

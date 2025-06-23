@@ -1,7 +1,7 @@
 /*
  * Carolina de Assis Souza 2320860 3WC
  * Breno de Andrade Soares 2320363 3WC
- *
+ * -------------
  * Este arquivo implementa o compilador peqcomp, que traduz código SBas
  * para código de máquina em um buffer de bytes. O compilador suporta operações
  * aritméticas simples, atribuições, saltos condicionais e retorno de valores.
