@@ -1,145 +1,69 @@
-
-// testapeqcomp.c
 #include <stdio.h>
 #include <stdlib.h>
 #include "peqcomp.h"
 
-// Imprime em hex o código gerado até o primeiro RET (0xC3)
-void dump_code(unsigned char *codigo) {
-    int i = 0;
-    printf("Machine code bytes:\n");
-    while (i < 256) {
-        printf("%02X ", codigo[i]);
-        if (codigo[i] == 0xC3) break;  // encontra o RET e para
-        i++;
-    }
-    printf("\n(0xC3 em byte %d)\n\n", i);
-}
-
-int main(int argc, char *argv[]){
-    if (argc < 2) {
-        fprintf(stderr, "Uso: %s <valor>\n", argv[0]);
-        return 1;
-    }
-    int param = atoi(argv[1]);
-
-    FILE *myfp = fopen("programa.sbas","r");
-    if (!myfp) { perror("fopen"); return 1; }
-
-    unsigned char codigo[1024];
-    funcp funcaoSbas = peqcomp(myfp, codigo);
-    fclose(myfp);
-
-    // 1) Espia os bytes gerados:
-    dump_code(codigo);
-
-    // 2) Executa com o seu argumento
-    int res = funcaoSbas(param);
-    printf("Resultado para %d → %d\n", param, res);
-    return 0;
-}
-
-
-
-/* #include <stdio.h>
-#include <stdlib.h>
-#include "peqcomp.h"
-
-typedef int (*func2_t)(int, int);
-
-// Imprime índice + byte em hex dos 64 primeiros bytes
-static void dump_code(const unsigned char *code) {
-    printf("Machine code bytes:\n");
-    for (int i = 0; i < 64; i++) {
-        printf("[%02d] %02X ", i, code[i]);
-        // se a sequência anterior for 5D 5B e agora  C3, é o RET real
-        if (i >= 2
-            && code[i-2] == 0x5D
-            && code[i-1] == 0x5B
-            && code[i]   == 0xC3) {
-            break;
-        }
-    }
-    printf("\n\n");
-}
-
-int main(int argc, char *argv[]) {
-    if (argc < 3) {
-        fprintf(stderr, "Uso: %s <p1> <p2>\n", argv[0]);
-        return 1;
-    }
-
-    FILE *myfp;
-    unsigned char codigo[1024]; // Vetor de código de máquina
-    func2_t funcaoSBas;
-    int res;
-
-    // Abre o arquivo de entrada
-    if ((myfp = fopen("programa.sbas", "r")) == NULL) {
-        perror("Falha na abertura do arquivo fonte");
-        exit(1);
-    }
-
-    // Compila o código SBas
-    funcaoSBas = (func2_t) peqcomp(myfp, codigo);
-    fclose(myfp);
-
-    // 1) Espia os bytes gerados:
-    dump_code(codigo);
-
-    // Chama a função gerada com os valores 10 e 20
-    int p1 = atoi(argv[1]);
-    int p2 = atoi(argv[2]);
-    res = funcaoSBas(p1, p2);
-
-    printf("Resultado para p1=%d p2=%d → %d\n", p1, p2, res);
-
-    return 0;
-}
+/* 
+ * Define o tipo da função compilada.
+ * A função recebe até 3 inteiros como parâmetros e retorna um inteiro.
  */
-
-
-
- /* #include <stdio.h>
-#include <stdlib.h>
-#include "peqcomp.h"
-
-// Assinatura para até três parâmetros
 typedef int (*func3_t)(int, int, int);
 
-// Imprime índice + byte em hex dos 64 primeiros bytes
-static void dump_code(const unsigned char *code) {
-    puts("Machine code (primeiros 64 bytes):");
-    for (int i = 0; i < 64; ++i) {
+/* 
+ * Exibe os primeiros 64 bytes do código de máquina gerado.
+ * Essa função é usada apenas para fins de depuração e estudo,
+ * permitindo que o usuário veja os bytes binários criados pelo compilador.
+ *
+ * @param code Buffer contendo o código de máquina gerado.
+ */
+void dump_code(const unsigned char *code) {
+    printf("Machine code (primeiros 64 bytes):\n");
+    for (int i = 0; i < 64; i++) {
         printf("[%02d] %02X\n", i, code[i]);
     }
     putchar('\n');
 }
 
 int main(int argc, char *argv[]) {
-    if (argc < 4) {
-        fprintf(stderr, "Uso: %s <p1> <p2> <p3>\n", argv[0]);
-        return 1;
-    }
-    int p1 = atoi(argv[1]);
-    int p2 = atoi(argv[2]);
-    int p3 = atoi(argv[3]);
-
-    FILE *fp = fopen("programa.sbas", "r");
-    if (!fp) {
-        perror("programa.sbas");
+    if (argc < 2 || argc > 4) {
+        fprintf(stderr, "Uso: %s <p1> [p2] [p3]\n", argv[0]);
         return 1;
     }
 
-    unsigned char code[4096];
-    funcp gen = peqcomp(fp, code);
-    fclose(fp);
+    /* 
+     * Armazena os valores dos parâmetros passados pela linha de comando.
+     * Caso o usuário não informe todos os parâmetros, os demais serão zero.
+     */
+    int p[3] = {0, 0, 0};
+    for (int i = 0; i < argc - 1; i++) {
+        p[i] = atoi(argv[i + 1]);
+    }
 
-    dump_code(code);
+    FILE *f = fopen("programa.sbas", "r");
+    if (!f) {
+        perror("Erro ao abrir programa.sbas");
+        return 1;
+    }
 
-    func3_t f = (func3_t)gen;
-    int result = f(p1, p2, p3);
+    /*
+     * Buffer para armazenar o código de máquina gerado.
+     * O tamanho 1024 é mais do que suficiente para armazenar os bytes de um programa SBas simples.
+     * Esse buffer é passado para peqcomp, que escreve o código de máquina diretamente nele.
+     */
+    unsigned char code[1024];
 
-    printf("Resultado para p1=%d p2=%d p3=%d → %d\n", p1, p2, p3, result);
+    /* Gera o código de máquina compilando o arquivo SBas */
+    func3_t fn = (func3_t) peqcomp(f, code);
+    fclose(f);
+
+    /* 
+     * A chamada abaixo é opcional e usada apenas para testes e verificação dos bytes gerados.
+     * Pode ser comentada caso o objetivo seja apenas executar o programa sem inspeção.
+     */
+    // dump_code(code);
+
+    /* Chama a função compilada, passando os parâmetros lidos */
+    int result = fn(p[0], p[1], p[2]);
+
+    printf("Resultado: %d\n", result);
     return 0;
-} */
+}
