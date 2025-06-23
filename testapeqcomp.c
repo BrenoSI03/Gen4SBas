@@ -1,51 +1,4 @@
-/* #include <stdio.h>
-#include <stdlib.h>
-#include "peqcomp.h"
 
-// Assinatura para até três parâmetros
-typedef int (*func3_t)(int, int, int);
-
-// Imprime índice + byte em hex dos 64 primeiros bytes
-static void dump_code(const unsigned char *code) {
-    puts("Machine code (primeiros 64 bytes):");
-    for (int i = 0; i < 64; ++i) {
-        printf("[%02d] %02X\n", i, code[i]);
-    }
-    putchar('\n');
-}
-
-int main(int argc, char *argv[]) {
-    if (argc < 4) {
-        fprintf(stderr, "Uso: %s <p1> <p2> <p3>\n", argv[0]);
-        return 1;
-    }
-    int p1 = atoi(argv[1]);
-    int p2 = atoi(argv[2]);
-    int p3 = atoi(argv[3]);
-
-    FILE *fp = fopen("programa.sbas", "r");
-    if (!fp) {
-        perror("programa.sbas");
-        return 1;
-    }
-
-    unsigned char code[4096];
-    funcp gen = peqcomp(fp, code);
-    fclose(fp);
-
-    dump_code(code);
-
-    func3_t f = (func3_t)gen;
-    int result = f(p1, p2, p3);
-
-    printf("Resultado para p1=%d p2=%d p3=%d → %d\n", p1, p2, p3, result);
-    return 0;
-} */
-
-
-
-
-/* 
 // testapeqcomp.c
 #include <stdio.h>
 #include <stdlib.h>
@@ -84,9 +37,11 @@ int main(int argc, char *argv[]){
     int res = funcaoSbas(param);
     printf("Resultado para %d → %d\n", param, res);
     return 0;
-} */
+}
 
-#include <stdio.h>
+
+
+/* #include <stdio.h>
 #include <stdlib.h>
 #include "peqcomp.h"
 
@@ -141,3 +96,50 @@ int main(int argc, char *argv[]) {
 
     return 0;
 }
+ */
+
+
+
+ /* #include <stdio.h>
+#include <stdlib.h>
+#include "peqcomp.h"
+
+// Assinatura para até três parâmetros
+typedef int (*func3_t)(int, int, int);
+
+// Imprime índice + byte em hex dos 64 primeiros bytes
+static void dump_code(const unsigned char *code) {
+    puts("Machine code (primeiros 64 bytes):");
+    for (int i = 0; i < 64; ++i) {
+        printf("[%02d] %02X\n", i, code[i]);
+    }
+    putchar('\n');
+}
+
+int main(int argc, char *argv[]) {
+    if (argc < 4) {
+        fprintf(stderr, "Uso: %s <p1> <p2> <p3>\n", argv[0]);
+        return 1;
+    }
+    int p1 = atoi(argv[1]);
+    int p2 = atoi(argv[2]);
+    int p3 = atoi(argv[3]);
+
+    FILE *fp = fopen("programa.sbas", "r");
+    if (!fp) {
+        perror("programa.sbas");
+        return 1;
+    }
+
+    unsigned char code[4096];
+    funcp gen = peqcomp(fp, code);
+    fclose(fp);
+
+    dump_code(code);
+
+    func3_t f = (func3_t)gen;
+    int result = f(p1, p2, p3);
+
+    printf("Resultado para p1=%d p2=%d p3=%d → %d\n", p1, p2, p3, result);
+    return 0;
+} */
