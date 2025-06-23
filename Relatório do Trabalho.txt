@@ -1,0 +1,93 @@
+Relatório do Trabalho “Compilador ” - INF1018
+
+Grupo:
+ Carolina de Assis Souza - Matrícula: 2320860 - Turma: 3WC
+ Breno de Andrade Soares - Matrícula: 2320363 - Turma: 3WC
+
+
+Descrição do trabalho
+
+O trabalho consistiu em implementar um compilador em linguagem C para a linguagem , capaz de traduzir o código-fonte  para código de máquina armazenado em um buffer de bytes. O compilador gera um código que pode ser executado diretamente, aceitando até 5 variáveis locais (v1, v2, v3, v4, v5) e até 3 parâmetros (p1, p2, p3).
+
+O compilador está completo e funcionando corretamente para:
+- Atribuições simples.
+- Operações aritméticas (soma, subtração, multiplicação).
+- Instruções de desvio condicional (iflez).
+- Instruções de retorno (ret).
+
+O código presume que o programa  de entrada está correto e dentro das restrições especificadas.
+
+Exemplos de funções  testadas:
+
+A) Soma de parâmetros
+
+v1 : p1
+v2 : p2
+v3 : p3
+v4 = v1 + v2
+v4 = v4 + v3
+ret v4
+
+Teste:
+
+./testapeqcomp 1 2 3
+
+Resultado esperado: 6
+Resultado obtido: 6
+
+
+B) Verificação de negativo
+
+v1 : p1
+v1 = v1 + $1
+iflez v1 5
+ret $0
+ret $1
+
+Testes:
+
+./testapeqcomp -2 0 0
+Esperado: 1
+
+./testapeqcomp 5 0 0
+Esperado: 0
+
+Resultados obtidos: corretos nos dois casos, quanto para positivo, quanto para negativo.
+
+
+C) Operação mista com constante
+
+v1 : p1
+v2 : $5
+v3 = v1 * v2
+v3 = v3 - $10
+ret v3
+
+Teste:
+
+./testapeqcomp 4 0 0
+
+Resultado esperado: 10
+Resultado obtido: 10
+
+
+D) (x + y) * (x - y)
+
+v1 : p1
+v2 : p2
+v3 = v1 + v2
+v4 = v1 - v2
+v1 = v3 * v4
+ret v1
+
+Teste:
+
+./testapeqcomp 5 2 0
+
+Resultado esperado: 21
+Resultado obtido: 21
+
+
+Conclusão:
+
+A partir dos testes realizados, incluindo funções com operações aritméticas, atribuições, saltos condicionais e retorno de valores, o compilador  desenvolvido funcionou de forma adequada, atendendo aos requisitos propostos. O sistema trata corretamente até 5 variáveis locais e 3 parâmetros, traduzindo o código-fonte  em código de máquina válido para execução direta.

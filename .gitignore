@@ -51,5 +51,6 @@ Module.symvers
 Mkfile.old
 dkms.conf
 testapeqcomp
-*.txt
+INF1018 - 2025.1.txt
+Código de Máquina.txt
 .vscode
