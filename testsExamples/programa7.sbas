@@ -1,0 +1,9 @@
+v1 : p1
+v2 : p2
+v3 : $2
+
+iflez v2 7
+v1 = v1 + v2
+v2 = v2 - v3
+iflez v4 3
+ret v1

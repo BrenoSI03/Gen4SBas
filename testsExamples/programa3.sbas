@@ -1,0 +1,5 @@
+v1 : p1           // obtém p1
+v1 = v1 + $1      // incrementa para poder testar <= 0 corretamente
+iflez v1 5        // se v1 <= 0, desvia para linha 5
+ret $0            // não é negativo
+ret $1            // é negativo

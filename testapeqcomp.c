@@ -48,7 +48,7 @@ int main(int argc, char *argv[]) {
         p[i] = atoi(argv[i + 1]);
     }
 
-    FILE *f = fopen("programa.sbas", "r");
+    FILE *f = fopen("testsExamples/programa7.sbas", "r");
     if (!f) {
         perror("Erro ao abrir programa.sbas");
         return 1;

@@ -1,0 +1,6 @@
+v1 : p1      // armazena p1 em v1
+v2 : p2      // armazena p2 em v2
+v3 : p3      // armazena p3 em v3
+v4 = v1 + v2 // soma v1 e v2
+v4 = v4 + v3 // soma o resultado com v3
+ret v4       // retorna a soma final
